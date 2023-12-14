@@ -24,6 +24,7 @@ def regional_info_extraction(data, left_hms, right_hms, middle_hms):
     D = torch.cat(hms_diff, dim = 2)
     S = data[:, middle_hms, : ,:].permute((0,2,1,3)).reshape((data.shape[0], data.shape[2], -1))
     X = torch.cat((D,S), dim = 2)
+    
     # print(f"no. of iter: {len(comb_idx)}")
     # print(f"D shape: {D.shape} & D dimension {D.ndim}")
     # print(f"S shape: {S.shape} & S dimension {S.ndim}")

@@ -2,10 +2,6 @@ from torch import nn
 import torch.nn.functional as F
 
 
-
-
-
-
 class Feature_Encoding(nn.Module):
     def __init__(
         self,
