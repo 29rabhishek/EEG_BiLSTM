@@ -1,6 +1,7 @@
 import torch
 from utils import regional_info_extraction
 import torch.utils.functional as F
+from tqdm.auto import tqdm
 # from typing import Dict, List, Tuple
 
 def train_step(
@@ -11,8 +12,8 @@ def train_step(
     lr_scheduler,
     loss_fn,
     device,
-    right_hms
-    left_hms
+    left_hms,
+    right_hms,
     middle_hms
     ):
     """
@@ -50,10 +51,10 @@ def train_step(
         optimizer.step()
         model_loss += loss
         acc = (F.softmax(yhat, dim = 1).argmax(dim = 1) == y).sum().item()/len(y)
-        mode_acc += acc
+        model_acc += acc
     model_loss /= len(train_dataloader)
     model_acc /= len(train_dataloader)
-    return model_loss, mode_acc
+    return model_loss, model_acc
 
 
 def test_step(
@@ -62,8 +63,8 @@ def test_step(
     cls_model,
     loss_fn,
     device,
-    right_hms
-    left_hms
+    left_hms,
+    right_hms,
     middle_hms
     ):
     """
@@ -167,3 +168,57 @@ def train_engin(
         res_dict['test_acc'].append(test_acc)
 
     return res_dict
+
+def inference_step(
+        inf_dataloader,
+        feature_encoding_model,
+        cls_model,
+        loss_fn,
+        device,
+        left_hms,
+        right_hms,
+        middle_hms
+    ):
+    """
+    This function do prediction on input data, return error metrics and output
+
+    Parameter:
+        inf_dataloader: torch.utils.data.DataLoader, dataloader for inference or test data
+
+    Return:
+        Dict(
+        'Prediction' : predicted output, type tensor
+        'inf_loss': loss during inference, float
+        'inf_acc': accuracy calculated on inference data, float
+        )
+
+    """
+    inf_loss, inf_acc = 0, 0 
+    output_res = []
+    for X, y in inf_dataloader:
+        with torch.inference_mode():
+            for batch, (X,y) in enumerate(inf_dataloader):
+                X = regional_info_extraction(X, left_hms, right_hms, middle_hms)
+                X.to(device)
+                y.to(device)
+                X = feature_encoding_model(X)
+                yhat = cls_model(X)
+                loss = loss_fn(yhat, y)
+
+                inf_loss += loss
+                yhat_class = torch.argmax(torch.softmax(yhat, dim =1), dim =1)
+                inf_acc += (yhat_class == y).sum().item()/len(yhat)
+                print(
+                    f"batch: {batch}/{len(inf_dataloader)} | "
+                    f"Inference Loss: {inf_loss} | "
+                    f"Inference acc: {inf_acc}"
+                    )
+                output_res.append(torch.cat([yhat_class, y], dim = 1))
+            output_res = torch.cat(output_res, dim=0)
+            
+    return {
+        'prediction': output_res,
+        'inf_loss': inf_loss/len(inf_dataloader),
+        'inf_acc': inf_acc/len(inf_dataloader)
+    }
+
