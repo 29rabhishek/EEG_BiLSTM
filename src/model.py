@@ -11,7 +11,7 @@ class Feature_Encoding(nn.Module):
         hidden_size = 5,
         lstm_config = "BiLSTM"
     ):
-        super().__init__(self)
+        super().__init__()
         self.Stack_BiLstm_layer = nn.LSTM(input_size = input_size,
                                           hidden_size = hidden_size,
                                           num_layers = num_layer,
@@ -19,11 +19,11 @@ class Feature_Encoding(nn.Module):
                                           batch_first = True,
                                           dropout=0.0,
                                           bidirectional = True if lstm_config == "BiLSTM" else False)
-        self.fcn_layer = nn.Linear(in_features = hidden_size, out_features = out_features, bias=True)
+        self.fcn_layer = nn.Linear(in_features = num_layer*hidden_size, out_features = out_features, bias=True)
         self.activation_layer = nn.ReLU()
 
     def forward(self, x):
-        x = self.stack_BiLSTM_layer(x)
+        x, _ = self.stack_BiLSTM_layer(x)
         x = self.fcn_layer(x[:, -1, :])
         x = self.activation_layer(x)
         return x
@@ -31,7 +31,7 @@ class Feature_Encoding(nn.Module):
 
 class Classification_model(nn.Module):
     def __init__(self, input_size):
-        super().__init__(self)
+        super().__init__()
         self.fcn = nn.Linear(in_features = input_size, out_features = 40)
     def forward(self, x):
         return F.softmax(x, dim = 1)
