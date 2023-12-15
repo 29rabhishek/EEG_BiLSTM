@@ -1,6 +1,6 @@
 import torch
 from utils import regional_info_extraction
-import torch.utils.functional as F
+import torch.nn.functional as F
 from tqdm.auto import tqdm
 # from typing import Dict, List, Tuple
 
