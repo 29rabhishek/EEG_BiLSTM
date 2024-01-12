@@ -5,7 +5,7 @@ import torch.nn.functional as F
 class Feature_Encoding(nn.Module):
     def __init__(
         self,
-        input_size = 25,
+        input_size, # depend on regional info extraction module
         out_features = 5,
         num_layer = 2,
         hidden_size = 5,
@@ -19,7 +19,7 @@ class Feature_Encoding(nn.Module):
                                           batch_first = True,
                                           dropout=0.0,
                                           bidirectional = True if lstm_config == "BiLSTM" else False)
-        self.fcn_layer = nn.Linear(in_features = num_layer*hidden_size, out_features = out_features, bias=True)
+        self.fcn_layer = nn.Linear(in_features = 2*hidden_size, out_features = out_features, bias=True)
         self.activation_layer = nn.ReLU()
 
     def forward(self, x):
@@ -29,10 +29,18 @@ class Feature_Encoding(nn.Module):
         return x
     
 
-class Classification_model(nn.Module):
+class Classification_Model_Softmax(nn.Module):
     def __init__(self, input_size):
         super().__init__()
         self.fcn = nn.Linear(in_features = input_size, out_features = 40)
     def forward(self, x):
         return F.softmax(x, dim = 1)
+    
+
+class multiclass_svm(nn.module):
+    def __inti__(self, input_size, num_classes):
+        super().__init__(self)
+        self.linear = nn.Linear(in_features = input_size, out_features = num_classes, bias = True)
+    def foreard(self, X):
+        return self.linear(X)
         
