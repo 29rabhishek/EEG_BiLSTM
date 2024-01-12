@@ -37,7 +37,7 @@ class Classification_Model_Softmax(nn.Module):
         return F.softmax(x, dim = 1)
     
 
-class multiclass_svm(nn.module):
+class multiclass_svm(nn.Module):
     def __inti__(self, input_size, num_classes):
         super().__init__(self)
         self.linear = nn.Linear(in_features = input_size, out_features = num_classes, bias = True)

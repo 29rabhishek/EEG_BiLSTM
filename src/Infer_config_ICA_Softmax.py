@@ -43,7 +43,8 @@ hist_dict = train_engin(
     device=device,
     left_hms=left_hms,
     right_hms=right_hms,
-    middle_hms=middle_hms
+    middle_hms=middle_hms,
+    ica_model = None
 )
 
 
