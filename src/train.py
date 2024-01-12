@@ -48,7 +48,7 @@ def train_step(
         y.to(device)
         X = feature_encoding_model(X)
         if ICA_Model:
-            X = ICA_Model.fit_transform(X)
+            X = ICA_Model.fit_transform(X.T).T
         yhat = cls_model(X)
         loss = loss_fn(yhat, y)
         optimizer.zero_grad()
@@ -70,7 +70,8 @@ def test_step(
     device,
     left_hms,
     right_hms,
-    middle_hms
+    middle_hms,
+    ICA_Model = None,
     ):
     """
     This function test the model and return validation loss and validation accuarcy
@@ -84,6 +85,7 @@ def test_step(
     left_hms: list
     right_hms: list
     middle_hms: list
+    ICA_Model: model to do ICA decompostion default None
 
     Return 
     test_loss: list[tensor]
@@ -98,6 +100,8 @@ def test_step(
             X.to(device)
             y.to(device)
             X = feature_encoding_model(X)
+            if ICA_Model:
+                X = ICA_Model.fit_transform(X.T).T
             yhat = cls_model(X)
             loss = loss_fn(yhat, y)
 
@@ -122,7 +126,8 @@ def train_engin(
     device : torch.device,
     left_hms: list,
     right_hms: list,
-    middle_hms: list
+    middle_hms: list,
+    ICA_Model = None
     ):
     """
     This Function Train and do validation testing, return result dictionary
@@ -147,7 +152,8 @@ def train_engin(
             device=device,
             left_hms = left_hms,
             right_hms = right_hms,
-            middle_hms = middle_hms
+            middle_hms = middle_hms,
+            ICA_Model = ICA_Model
             )
         
         test_loss, test_acc = test_step(
@@ -158,7 +164,8 @@ def train_engin(
             device=device,
             left_hms = left_hms,
             right_hms = right_hms,
-            middle_hms = middle_hms
+            middle_hms = middle_hms,
+            ICA_Model= ICA_Model
             )
         print(
         f"Epoch: {epoch+1} | "
@@ -182,7 +189,7 @@ def inference_step(
         device,
         left_hms,
         right_hms,
-        middle_hms
+        middle_hms,
     ):
     """
     This function do prediction on input data, return error metrics and output
