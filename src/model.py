@@ -5,21 +5,22 @@ import torch.nn.functional as F
 class Feature_Encoding(nn.Module):
     def __init__(
         self,
-        input_size, # depend on regional info extraction module
-        out_features = 5,
-        num_layer = 2,
-        hidden_size = 5,
-        lstm_config = "BiLSTM"
+        lstm_input_size, # depend on regional info extraction module
+        fcn_out_features,
+        lstm_hidden_size ,
+        lstm_num_layer,
+        lstm_config
     ):
         super().__init__()
-        self.Stack_BiLstm_layer = nn.LSTM(input_size = input_size,
-                                          hidden_size = hidden_size,
-                                          num_layers = num_layer,
+        self.Stack_BiLstm_layer = nn.LSTM(input_size = lstm_input_size,
+                                          hidden_size = lstm_hidden_size,
+                                          num_layers = lstm_num_layer,
                                           bias = True,
                                           batch_first = True,
                                           dropout=0.0,
                                           bidirectional = True if lstm_config == "BiLSTM" else False)
-        self.fcn_layer = nn.Linear(in_features = 2*hidden_size, out_features = out_features, bias=True)
+        self.D = 2 if lstm_config == "BiLSTM" else 1
+        self.fcn_layer = nn.Linear(in_features = self.D*lstm_hidden_size, out_features = fcn_out_features, bias=True)
         self.activation_layer = nn.ReLU()
 
     def forward(self, x):

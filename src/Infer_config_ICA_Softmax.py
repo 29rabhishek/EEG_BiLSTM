@@ -14,20 +14,37 @@ left_hms = [1,3,6] #left_hemisphere
 right_hms = [0,2,5] #right_hemisphere
 middle_hms = [8, 9] #middle_hemisphere
 
+
+
 if len(left_hms) != len(right_hms):
     raise Exception(f"left_hms len: {len(left_hms)} != right_hms len: {len(right_hms)}")
 
+# Model parameter of Feature_Encoding Module
+
 # input size for BiLSTM/LSTM in Feature Encoding Module
-feature_enc_module_input_size =  len(left_hms)+len(right_hms)
+lstm_input_size =  len(left_hms)+len(right_hms)
+fcn_out_features = 5,
+lstm_hidden_size = 5 ,
+lstm_num_layer = 2,
+lstm_config = "BiLSTM"
+
+
+
 
 sample_x, sample_y = create_test_data()
 train_dataloader, test_dataloader = train_test_dataloader(sample_x, sample_y, 0.2, BATCH_SIZE)
 
-
 feature_encoding_model = Feature_Encoding(
-    input_size=feature_enc_module_input_size
+    lstm_input_size = lstm_input_size,
+    fcn_out_features = fcn_out_features,
+    lstm_hidden_size = lstm_hidden_size ,
+    lstm_num_layer = lstm_num_layer,
+    lstm_config = lstm_config
     ).to(device)
-cls_model = Classification_Model_Softmax().to(device)
+
+cls_model = Classification_Model_Softmax(input_size = fcn_out_features).to(device)
+
+
 loss_fn = BCELoss()
 optimizer = Adam(params=[Feature_Encoding.parameters(), Classification_Model_Softmax.parameters()], lr = LEARNING_RATE)
 scheduler = lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.9)
