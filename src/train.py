@@ -1,6 +1,7 @@
 import torch
 from utils import regional_info_extraction
 import torch.nn.functional as F
+from sklearn.decomposition import FastICA
 from tqdm.auto import tqdm
 # from typing import Dict, List, Tuple
 
@@ -14,7 +15,8 @@ def train_step(
     device,
     left_hms,
     right_hms,
-    middle_hms
+    middle_hms,
+    ICA_Model = None,
     ):
     """
     This function train the model and return training loss and validation accuracy
@@ -23,13 +25,14 @@ def train_step(
     train_dataloader: type DataLoader, DataLoader of train dataset
     feature_encoding_model: torch.nn.Module
     cls_model: torch.nn.Module
-    optimizer: torch.optim
+    optimizer: torch.optim 
     scheduler: torch.optim.lr_scheduler, learning rate scheduler
     loss_fn: torch.nn.Module
     device: torch.device
     left_hms: list
     right_hms: list
     middle_hms: list
+    ICA_Model: model to do ICA decompostion default None
 
     Return 
     model_loss: list[tensor]
@@ -39,11 +42,13 @@ def train_step(
     cls_model.train()
     model_loss = []
     model_acc = []
-    for X, y in train_dataloader:
+    for X, y in train_dataloader:  
         X = regional_info_extraction(X, left_hms, right_hms, middle_hms)
         X.to(device)
         y.to(device)
         X = feature_encoding_model(X)
+        if ICA_Model:
+            X = ICA_Model.fit_transform(X)
         yhat = cls_model(X)
         loss = loss_fn(yhat, y)
         optimizer.zero_grad()
