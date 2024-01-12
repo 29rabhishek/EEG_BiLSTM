@@ -12,3 +12,9 @@ Implementaion of paper "EEG-based image classification via a region-level stacke
 - *Lateralization*: Region-level Info.
 -  *Feature Encoder*: Bidirectional LSTM
 -  *Classifier*: Softmax
+
+**Configurations 6**:
+-*inference script*: Infer_confif_ICA_SVM
+- *Lateralization*: Region-level Info.
+-  *Feature Encoder*: Stacked Bidirectional LSTM
+-  *Classifier*: ICA+SVM
