@@ -40,9 +40,9 @@ feature_encoding_model = Feature_Encoding(
     lstm_hidden_size = lstm_hidden_size ,
     lstm_num_layer = lstm_num_layer,
     lstm_config = lstm_config
-    ).to(device)
+    )
 
-cls_model = Classification_Model_Softmax(input_size = fcn_out_features).to(device)
+cls_model = Classification_Model_Softmax(input_size = fcn_out_features)
 
 
 loss_fn = BCELoss()
