@@ -23,9 +23,9 @@ if len(left_hms) != len(right_hms):
 
 # input size for BiLSTM/LSTM in Feature Encoding Module
 lstm_input_size =  len(left_hms)+len(right_hms)
-fcn_out_features = 5,
-lstm_hidden_size = 5 ,
-lstm_num_layer = 2,
+fcn_out_features = 5
+lstm_hidden_size = 5
+lstm_num_layer = 2
 lstm_config = "BiLSTM"
 
 
@@ -46,7 +46,10 @@ cls_model = Classification_Model_Softmax(input_size = fcn_out_features).to(devic
 
 
 loss_fn = BCELoss()
-optimizer = Adam(params=[Feature_Encoding.parameters(), Classification_Model_Softmax.parameters()], lr = LEARNING_RATE)
+optimizer = Adam(
+    params=list(feature_encoding_model.parameters()) + list(cls_model.parameters()),
+    lr = LEARNING_RATE
+    )
 scheduler = lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.9)
 hist_dict = train_engin(
     epochs=NUM_EPOCHS,
