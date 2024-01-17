@@ -10,7 +10,7 @@ def train_step(
     feature_encoding_model,
     cls_model,
     optimizer,
-    lr_scheduler,
+    scheduler,
     loss_fn,
     device,
     left_hms,
