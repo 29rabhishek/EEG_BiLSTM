@@ -147,6 +147,7 @@ def train_engin(
             feature_encoding_model=feature_encoding_model,
             cls_model=cls_model,
             optimizer = optimizer,
+            scheduler = scheduler,
             loss_fn=loss_fn,
             device=device,
             left_hms = left_hms,
