@@ -44,8 +44,8 @@ def train_step(
     model_acc = []
     for X, y in train_dataloader:  
         X = regional_info_extraction(X, left_hms, right_hms, middle_hms)
-        X.to(device)
-        y.to(device)
+        X = X.to(device)
+        y = y.to(device)
         X = feature_encoding_model(X)
         if ica_model:
             X = ica_model.fit_transform(X.T).T
@@ -55,7 +55,7 @@ def train_step(
         loss.backward()
         optimizer.step()
         model_loss += loss
-        acc = (F.softmax(yhat, dim = 1).argmax(dim = 1) == y).sum().item()/len(y)
+        acc = ((yhat).argmax(dim = 1) == y).sum().item()/len(y)
         model_acc += acc
     model_loss /= len(train_dataloader)
     model_acc /= len(train_dataloader)
@@ -97,8 +97,8 @@ def test_step(
     with torch.inference_mode():
         for batch, (X,y) in enumerate(test_dataloader):
             X = regional_info_extraction(X, left_hms, right_hms, middle_hms)
-            X.to(device)
-            y.to(device)
+            X = X.to(device)
+            y = y.to(device)
             X = feature_encoding_model(X)
             if ica_model:
                 X = ica_model.fit_transform(X.T).T
@@ -141,6 +141,8 @@ def train_engin(
         "test_loss": [],
         "test_acc": []
         }
+    feature_encoding_model.to(device)
+    cls_model.to(device)
     for epoch in tqdm(range(epochs)):
         train_loss, train_acc = train_step(
             train_dataloader = train_dataloader,
