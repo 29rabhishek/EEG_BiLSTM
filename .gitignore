@@ -2,3 +2,6 @@
 src/.ipynb_checkpoints/multiclass_SVM-checkpoint.ipynb
 src/multiclass_SVM.ipynb
 src/notebook1.ipynb
+src/__pycache__
+src/inference_testing_notebook.ipynb
+src/notebook1.ipynb
