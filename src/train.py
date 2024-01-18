@@ -35,13 +35,13 @@ def train_step(
     ICA_Model: model to do ICA decompostion default None
 
     Return 
-    model_loss: list[tensor]
-    model_acc: list[tensor]
+    train_loss: list[tensor]
+    train_acc: list[tensor]
     """
     feature_encoding_model.train()
     cls_model.train()
-    model_loss = []
-    model_acc = []
+    train_loss = 0
+    train_acc = 0
     for X, y in train_dataloader:  
         X = regional_info_extraction(X, left_hms, right_hms, middle_hms)
         X = X.to(device)
@@ -54,12 +54,12 @@ def train_step(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        model_loss += loss
+        train_loss += float(loss)
         acc = ((yhat).argmax(dim = 1) == y).sum().item()/len(y)
-        model_acc += acc
-    model_loss /= len(train_dataloader)
-    model_acc /= len(train_dataloader)
-    return model_loss, model_acc
+        train_acc += acc
+    train_loss /= len(train_dataloader)
+    train_acc /= len(train_dataloader)
+    return round(train_loss, 4), round(train_acc, 4)
 
 
 def test_step(
@@ -105,12 +105,12 @@ def test_step(
             yhat = cls_model(X)
             loss = loss_fn(yhat, y)
 
-            test_loss += loss
+            test_loss += float(loss)
             yhat_class = torch.argmax(torch.softmax(yhat, dim =1), dim =1)
             test_acc += (yhat_class == y).sum().item()/len(yhat)
 
-    test_loss = test_loss/len(test_dataloader)
-    test_acc = test_acc/len(test_dataloader)
+    test_loss = round(test_loss/len(test_dataloader), 4)
+    test_acc = round(test_acc/len(test_dataloader), 4)
     return test_loss, test_acc
 
 

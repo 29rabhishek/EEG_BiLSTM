@@ -24,7 +24,8 @@ class Feature_Encoding(nn.Module):
         self.activation_layer = nn.ReLU()
 
     def forward(self, x):
-        x, _ = self.Stack_BiLstm_layer(x)
+        self.Stack_BiLstm_layer.flatten_parameters()
+        x , _ = self.Stack_BiLstm_layer(x)
         x = self.fcn_layer(x[:, -1, :])
         x = self.activation_layer(x)
         return x
