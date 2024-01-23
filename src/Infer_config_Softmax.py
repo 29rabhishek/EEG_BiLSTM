@@ -5,6 +5,10 @@ from sample_data_gen import create_test_data
 from data_setup import train_test_dataloader
 from model import Feature_Encoding, Classification_Model_Softmax
 from train import train_engin
+from pathlib import Path
+import os
+
+path = Path(os.getcwd()).parents[0]/'data'
 
 # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 device = 'cpu'
@@ -63,7 +67,8 @@ hist_dict = train_engin(
     left_hms=left_hms,
     right_hms=right_hms,
     middle_hms=middle_hms,
-    ica_model = None
+    ica_model = None,
+    path = path
 )
 
 

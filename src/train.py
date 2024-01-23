@@ -1,5 +1,5 @@
 import torch
-from utils import regional_info_extraction
+from utils import regional_info_extraction, save_checkpoint
 import torch.nn.functional as F
 from sklearn.decomposition import FastICA
 from tqdm.auto import tqdm
@@ -127,7 +127,8 @@ def train_engin(
     left_hms: list,
     right_hms: list,
     middle_hms: list,
-    ica_model
+    ica_model,
+    path
     ):
     """
     This Function Train and do validation testing, return result dictionary
@@ -143,7 +144,7 @@ def train_engin(
         }
     feature_encoding_model.to(device)
     cls_model.to(device)
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(1, epochs+1)):
         train_loss, train_acc = train_step(
             train_dataloader = train_dataloader,
             feature_encoding_model=feature_encoding_model,
@@ -157,7 +158,16 @@ def train_engin(
             middle_hms = middle_hms,
             ica_model = ica_model
             )
-        
+        save_checkpoint(
+            {
+                'encoding_model': feature_encoding_model,
+                'cls_model': cls_model
+            },
+            optimizer,
+            epoch,
+            train_loss,
+            path
+        )
         test_loss, test_acc = test_step(
             test_dataloader = test_dataloader,
             feature_encoding_model=feature_encoding_model,
@@ -170,7 +180,7 @@ def train_engin(
             ica_model = ica_model
             )
         print(
-        f"Epoch: {epoch+1} | "
+        f"Epoch: {epoch} | "
         f"train_loss: {train_loss:.4f} | "
         f"train_acc: {train_acc:.4f} | "
         f"test_loss: {test_loss:.4f} | "

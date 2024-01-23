@@ -59,3 +59,29 @@ def multi_class_svm_loss(scores, labels, margin=1.0):
     loss = torch.sum(torch.relu(margins)) / len(scores)
 
     return loss
+
+
+def save_checkpoint(
+    model_dict : dict,
+    optimizer:torch.optim.Optimizer,
+    epoch: int,
+    loss:float,
+    path
+    ):
+    '''
+    Save the states model, optimizer, loss, epoch
+    '''
+    path = path
+    model_checkpoint  = {
+        'encoding_model_state_dict': model_dict['encoding_model'].state_dict(),
+        'cls_model_state_dict': model_dict['cls_model'].state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'epoch': epoch,
+        'loss': loss
+    }
+    new_path = f'model_checkpoint_{epoch}.pth'
+    path = path/new_path
+    torch.save(model_checkpoint, path)
+    print(f'Model Checkpoint {epoch}')
+    
+    
