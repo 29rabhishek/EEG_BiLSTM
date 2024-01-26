@@ -1,5 +1,9 @@
 import torch
-def regional_info_extraction(data, left_hms, right_hms, middle_hms):
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import numpy as np
+
+def regional_info_extraction(data, laterization_dict):
     """
     This fucntion extract region level information for more
     info EEG-based image classification via a region-level stacked bi-directional deep learning framework
@@ -13,6 +17,10 @@ def regional_info_extraction(data, left_hms, right_hms, middle_hms):
     Return
     X: tensor,
     """
+    left_hms = laterization_dict['left_hms']
+    right_hms = laterization_dict['right_hms']
+    middle_hms = laterization_dict['middle_hms']
+
     comb_idx = list(zip(left_hms, right_hms))
     hms_diff = []
     data = data.reshape((data.shape[0], data.shape[1], data.shape[2], 1))
@@ -60,8 +68,7 @@ def multi_class_svm_loss(scores, labels, margin=1.0):
 
     return loss
 
-
-def save_checkpoint(
+def checkpoint(
     model_dict : dict,
     optimizer:torch.optim.Optimizer,
     epoch: int,
@@ -71,17 +78,53 @@ def save_checkpoint(
     '''
     Save the states model, optimizer, loss, epoch
     '''
-    path = path
     model_checkpoint  = {
-        'encoding_model_state_dict': model_dict['encoding_model'].state_dict(),
-        'cls_model_state_dict': model_dict['cls_model'].state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'epoch': epoch,
+        'encoding_model': model_dict['encoding_model'].state_dict(),
+        'cls_model': model_dict['cls_model'].state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'epoch': epoch+1,
         'loss': loss
     }
-    new_path = f'model_checkpoint_{epoch}.pth'
+    new_path = f'model_checkpoint_{epoch+1}.pth'
     path = path/new_path
     torch.save(model_checkpoint, path)
-    print(f'Model Checkpoint {epoch}')
+    print(f'Model Checkpoint {epoch+1}')
+
+def plot_grad_flow(named_parameters):
+    '''Plots the gradients flowing through different layers in the net during training.
+    Can be used for checking for possible gradient vanishing / exploding problems.
     
-    
+    Usage: Plug this function in Trainer class after loss.backwards() as 
+    "plot_grad_flow(self.model.named_parameters())" to visualize the gradient flow'''
+    ave_grads = []
+    max_grads= []
+    layers = []
+    for n, p in named_parameters:
+        if(p.requires_grad) and ("bias" not in n):
+            layers.append(n)
+            ave_grads.append(p.grad.abs().detach().cpu().numpy().mean())
+            max_grads.append(p.grad.abs().detach().cpu().numpy().max())
+    plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
+    plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
+    plt.hlines(0, 0, len(ave_grads)+1, lw=2, color="k" )
+    plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
+    plt.xlim(left=0, right=len(ave_grads))
+    plt.ylim(bottom = -0.001, top=0.02) # zoom in on the lower gradient regions
+    plt.xlabel("Layers")
+    plt.ylabel("average gradient")
+    plt.title("Gradient flow")
+    plt.grid(True)
+    plt.legend([Line2D([0], [0], color="c", lw=4),
+                Line2D([0], [0], color="b", lw=4),
+                Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
+
+def grad_flow(named_parameters):
+    layers = []
+    avg_grads = []
+    max_grads= []
+    for n, p in named_parameters:
+        if(p.requires_grad) and ("bias" not in n):
+            layers.append(n)
+            avg_grads.append(p.grad.abs().detach().cpu().numpy().mean())
+            max_grads.append(p.grad.abs().detach().cpu().numpy().max())
+    return (layers, avg_grads, max_grads)
