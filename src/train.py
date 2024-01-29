@@ -1,7 +1,6 @@
 import torch
-from utils import checkpoint, regional_info_extraction
-from tqdm.auto import tqdm
-from sklearn.decomposition import FastICA
+from utils import checkpoint, regional_info_extraction, grad_flow
+# from tqdm.auto import tqdm
 
 class Trainer():
     """
@@ -16,14 +15,12 @@ class Trainer():
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
         loss_fn: torch.nn.Module,
-        use_regional_info: bool,
         device: torch.device,
         laterization_dict: dict,
         ica_model = None,
         ):
         self.encoding_model = encoding_model
         self.cls_model = classification_model
-        self.use_regional_info = use_regional_info
         self.ica_model = ica_model
         self.optimizer = optimizer
         self.scheduler = scheduler
@@ -55,9 +52,13 @@ class Trainer():
             X = X.to(self.device)
             y = y.to(self.device)
             X = self.encoding_model(X)
+            print(X.requires_grad)
             if self.ica_model is not None:
-                X = ica_model.fit_transform(X.to('cpu').T).T
-                X = X.to(device)
+                with torch.no_grad():
+                    X = self.ica_model.fit_transform(X.to('cpu').T).T
+                    X = torch.tensor(X).to(self.device)
+                    print(X.requires_grad)
+            print(X.requires_grad)
             yhat = self.cls_model(X)
             loss = self.loss_fn(yhat, y)
             self.optimizer.zero_grad()
@@ -96,8 +97,8 @@ class Trainer():
                 y = y.to(self.device)
                 X = self.encoding_model(X)
                 if self.ica_model is not None:
-                    X = ica_model.fit_transform(X.to('cpu').T).T
-                    X = X.to(device)
+                    X = self.ica_model.fit_transform(X.to('cpu').T).T
+                    X = X.to(self.device)
                 yhat = self.cls_model(X)
                 loss = self.loss_fn(yhat, y)
                 test_loss += float(loss)
@@ -142,11 +143,9 @@ class Trainer():
         epochs : int,
         train_dataloader : torch.utils.data.DataLoader,
         test_dataloader : torch.utils.data.DataLoader,
-        save_checkpoint = False,
         return_grad_flow = False,
         checkpoint_freq = 5,
         checkpoint_to_save_path = None,
-        load_checkpoint = False,
         checkpoint_to_load_path = None
         ):
 
@@ -165,7 +164,7 @@ class Trainer():
         self.encoding_model.to(self.device)
         self.cls_model.to(self.device)
 
-        if load_checkpoint:
+        if checkpoint_to_load_path is not None :
             start_epoch, _ = self.reload_states_dict(
                 checkpoint_path = checkpoint_to_load_path
                 )
@@ -183,7 +182,7 @@ class Trainer():
                 )
             
             #checkpoint saving logic
-            if save_checkpoint & (checkpoint_to_save_path !=None):
+            if checkpoint_to_save_path is not None:
                 if (epoch+1) % checkpoint_freq == 0:
                     if previous_loss is None or train_loss < previous_loss:
                         checkpoint(
