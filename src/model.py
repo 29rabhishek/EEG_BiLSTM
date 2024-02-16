@@ -9,7 +9,9 @@ class Feature_Encoding(nn.Module):
         fcn_out_features,
         lstm_hidden_size ,
         lstm_num_layer,
-        lstm_config
+        lstm_config,
+        num_classes,
+        dropout,
     ):
         super().__init__()
         self.Stack_BiLstm_layer = nn.LSTM(input_size = lstm_input_size,
@@ -17,17 +19,19 @@ class Feature_Encoding(nn.Module):
                                           num_layers = lstm_num_layer,
                                           bias = True,
                                           batch_first = True,
-                                          dropout=0.0,
+                                          dropout= dropout,
                                           bidirectional = True if lstm_config == "BiLSTM" else False)
         self.D = 2 if lstm_config == "BiLSTM" else 1
         self.fcn_layer = nn.Linear(in_features = self.D*lstm_hidden_size, out_features = fcn_out_features, bias=True)
         self.activation_layer = nn.ReLU()
+        self.fcn_layer2 = nn.Linear(in_features = fcn_out_features, out_features = num_classes)
 
     def forward(self, x):
         self.Stack_BiLstm_layer.flatten_parameters()
         x , _ = self.Stack_BiLstm_layer(x)
         x = self.fcn_layer(x[:, -1, :])
         x = self.activation_layer(x)
+        x = self.fcn_layer2(x)
         return x
     
 
@@ -47,3 +51,7 @@ class Multiclass_SVM(nn.Module):
     def forward(self, x):
         return self.linear(x)
         
+
+
+def build_model(model, config):
+    return model(**config)

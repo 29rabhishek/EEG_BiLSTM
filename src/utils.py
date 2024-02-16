@@ -2,41 +2,51 @@ import torch
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
+from pathlib import Path
+from datetime import date
 
-def regional_info_extraction(data, laterization_dict):
-    """
-    This fucntion extract region level information for more
-    info EEG-based image classification via a region-level stacked bi-directional deep learning framework
+class regional_info_extraction:
+    def __init__(
+            self,
+            left_hms ,
+            right_hms ,
+            middle_hms,
+            ):
+        self.left_hms = left_hms
+        self.right_hms = right_hms
+        self.middle_hms = middle_hms
+        
 
-    Parameter 
-    data: tensor, input_data
-    left_hms: list, index of left hemisphere EEG channels
-    right_hms: list, index of right hemisphere EEG channels
-    middle_hms: list, index of middle hemisphere EEG channels
+    def fit_transform(self, data):
+        """
+        This fucntion extract region level information for more
+        info EEG-based image classification via a region-level stacked bi-directional deep learning framework
 
-    Return
-    X: tensor,
-    """
-    left_hms = laterization_dict['left_hms']
-    right_hms = laterization_dict['right_hms']
-    middle_hms = laterization_dict['middle_hms']
+        Parameter 
+        data: tensor, input_data
+        left_hms: list, index of left hemisphere EEG channels
+        right_hms: list, index of right hemisphere EEG channels
+        middle_hms: list, index of middle hemisphere EEG channels
 
-    comb_idx = list(zip(left_hms, right_hms))
-    hms_diff = []
-    data = data.reshape((data.shape[0], data.shape[1], data.shape[2], 1))
+        Return
+        X: tensor,
+        """
+        comb_idx = list(zip(self.left_hms, self.right_hms))
+        hms_diff = []
+        data = data.reshape((data.shape[0], data.shape[1], data.shape[2], 1))
 
-    for (i, j) in comb_idx:
-        hms_diff.append(data[:, i, :, :] - data[:, j, :, :])
+        for (i, j) in comb_idx:
+            hms_diff.append(data[:, i, :, :] - data[:, j, :, :])
 
-    D = torch.cat(hms_diff, dim = 2)
-    S = data[:, middle_hms, : ,:].permute((0,2,1,3)).reshape((data.shape[0], data.shape[2], -1))
-    X = torch.cat((D,S), dim = 2)
-    
-    # print(f"no. of iter: {len(comb_idx)}")
-    # print(f"D shape: {D.shape} & D dimension {D.ndim}")
-    # print(f"S shape: {S.shape} & S dimension {S.ndim}")
-    # print(f"X shape: {X.shape} & X dimension {X.ndim}")
-    return X
+        D = np.concatenate(hms_diff, axis = 2)
+        S = data[:, self.middle_hms, : ,:].transpose((0,2,1,3)).reshape((data.shape[0], data.shape[2], -1))
+        X = np.concatenate((D,S), axis = 2)
+        
+        # print(f"no. of iter: {len(comb_idx)}")
+        # print(f"D shape: {D.shape} & D dimension {D.ndim}")
+        # print(f"S shape: {S.shape} & S dimension {S.ndim}")
+        # print(f"X shape: {X.shape} & X dimension {X.ndim}")
+        return X
 
 
 def multi_class_svm_loss(scores, labels, margin=1.0):
@@ -68,27 +78,38 @@ def multi_class_svm_loss(scores, labels, margin=1.0):
 
     return loss
 
-def checkpoint(
-    model_dict : dict,
+def model_checkpoint(
+    model_type: str,
+    model : torch.nn.Module,
     optimizer:torch.optim.Optimizer,
-    epoch: int,
-    loss:float,
-    path
+    scheduler : torch.optim.lr_scheduler,
+    hist_dict: dict,
+    path : str
     ):
     '''
     Save the states model, optimizer, loss, epoch
     '''
-    model_checkpoint  = {
-        'encoding_model': model_dict['encoding_model'].state_dict(),
-        'cls_model': model_dict['cls_model'].state_dict(),
+    checkpoint_dict  = {
+        model_type: model.state_dict(),
         'optimizer': optimizer.state_dict(),
-        'epoch': epoch+1,
-        'loss': loss
+        'scheduler': scheduler.state_dict(),
+        'hist_dict': hist_dict
     }
-    new_path = f'model_checkpoint_{epoch+1}.pth'
-    path = path/new_path
-    torch.save(model_checkpoint, path)
-    print(f'Model Checkpoint {epoch+1}')
+    new_path = f"{model_type}_checkpoint_{date.today().strftime('%d_%m')}_{hist_dict['epochs']}.pth"
+    path = Path(path)/new_path
+    torch.save(checkpoint_dict, path)
+    print("")
+    print(f"{model_type} Model Checkpoint {hist_dict['epochs']}")
+    print("")
+
+
+def latest_weight_file_path(checkpoint_folder_path, model_type):
+    model_filename = f"{model_type}_checkpoint_*"
+    weight_files = list(Path(checkpoint_folder_path).glob(model_filename))
+    if len(weight_files) == 0:
+        return None
+    weight_files.sort()
+    return str(weight_files[0])
 
 def plot_grad_flow(named_parameters):
     '''Plots the gradients flowing through different layers in the net during training.

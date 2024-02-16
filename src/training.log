@@ -1,0 +1,22 @@
+2024-02-16 16:03:16,542 :: INFO :: Experiment has Started !!
+2024-02-16 16:04:24,685 :: INFO :: Epoch: 50/2500 Train Loss: 2.3397, Train Accuracy: 0.2645 Test Acurracy 0.0608
+2024-02-16 16:05:29,525 :: INFO :: Epoch: 100/2500 Train Loss: 1.565, Train Accuracy: 0.4947 Test Acurracy 0.0734
+2024-02-16 16:06:35,708 :: INFO :: Epoch: 150/2500 Train Loss: 1.0925, Train Accuracy: 0.6517 Test Acurracy 0.0807
+2024-02-16 16:07:41,715 :: INFO :: Epoch: 200/2500 Train Loss: 0.8387, Train Accuracy: 0.7514 Test Acurracy 0.0713
+2024-02-16 16:08:48,813 :: INFO :: Epoch: 250/2500 Train Loss: 0.4959, Train Accuracy: 0.8775 Test Acurracy 0.0806
+2024-02-16 16:09:56,764 :: INFO :: Epoch: 300/2500 Train Loss: 0.3263, Train Accuracy: 0.9322 Test Acurracy 0.0685
+2024-02-16 16:11:04,292 :: INFO :: Epoch: 350/2500 Train Loss: 0.1432, Train Accuracy: 0.9871 Test Acurracy 0.0783
+2024-02-16 16:12:12,355 :: INFO :: Epoch: 400/2500 Train Loss: 0.0781, Train Accuracy: 0.9975 Test Acurracy 0.079
+2024-02-16 16:13:19,796 :: INFO :: Epoch: 450/2500 Train Loss: 0.0375, Train Accuracy: 0.9994 Test Acurracy 0.0726
+2024-02-16 16:14:27,340 :: INFO :: Epoch: 500/2500 Train Loss: 0.0228, Train Accuracy: 1.0 Test Acurracy 0.0731
+2024-02-16 16:15:35,103 :: INFO :: Epoch: 550/2500 Train Loss: 0.0177, Train Accuracy: 0.9992 Test Acurracy 0.0759
+2024-02-16 16:16:43,454 :: INFO :: Epoch: 600/2500 Train Loss: 0.0111, Train Accuracy: 1.0 Test Acurracy 0.0748
+2024-02-16 16:17:50,960 :: INFO :: Epoch: 650/2500 Train Loss: 0.0063, Train Accuracy: 1.0 Test Acurracy 0.0703
+2024-02-16 16:18:58,719 :: INFO :: Epoch: 700/2500 Train Loss: 0.0159, Train Accuracy: 1.0 Test Acurracy 0.0634
+2024-02-16 16:20:06,448 :: INFO :: Epoch: 750/2500 Train Loss: 0.0069, Train Accuracy: 1.0 Test Acurracy 0.0637
+2024-02-16 16:21:14,149 :: INFO :: Epoch: 800/2500 Train Loss: 0.0037, Train Accuracy: 1.0 Test Acurracy 0.0644
+2024-02-16 16:22:22,000 :: INFO :: Epoch: 850/2500 Train Loss: 0.0023, Train Accuracy: 1.0 Test Acurracy 0.0664
+2024-02-16 16:23:30,020 :: INFO :: Epoch: 900/2500 Train Loss: 0.0118, Train Accuracy: 1.0 Test Acurracy 0.0621
+2024-02-16 16:24:37,275 :: INFO :: Epoch: 950/2500 Train Loss: 0.0045, Train Accuracy: 1.0 Test Acurracy 0.0681
+2024-02-16 16:25:45,797 :: INFO :: Epoch: 1000/2500 Train Loss: 0.0074, Train Accuracy: 1.0 Test Acurracy 0.0672
+2024-02-16 16:26:53,324 :: INFO :: Epoch: 1050/2500 Train Loss: 0.0035, Train Accuracy: 1.0 Test Acurracy 0.0711

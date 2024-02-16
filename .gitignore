@@ -1,8 +1,5 @@
 /data
-src/.ipynb_checkpoints/multiclass_SVM-checkpoint.ipynb
+src/.ipynb_checkpoints
 src/multiclass_SVM.ipynb
 src/testing_notebook.ipynb
-src/__pycache__
-src/inference_notebook.ipynb
-src/new_trainer_cls.ipynb
 src/notused_code

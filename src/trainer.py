@@ -1,6 +1,9 @@
 import torch
-from utils import checkpoint, regional_info_extraction, grad_flow
-# from tqdm.auto import tqdm
+import torch.nn.functional as F
+from utils import model_checkpoint, regional_info_extraction, latest_weight_file_path
+import logging
+
+
 
 class Trainer():
     """
@@ -10,24 +13,21 @@ class Trainer():
     """
     def __init__(
         self,
-        encoding_model: torch.nn.Module,
-        classification_model: torch.nn.Module,
+        model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        scheduler: torch.optim.lr_scheduler,
+        scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau,
         loss_fn: torch.nn.Module,
         device: torch.device,
-        laterization_dict: dict,
-        ica_model = None,
+        model_type: str,
         ):
-        self.encoding_model = encoding_model
-        self.cls_model = classification_model
-        self.ica_model = ica_model
+        self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.loss_fn = loss_fn
-        self.laterization_dict = laterization_dict
         self.device = device
+        self.model_type = model_type
 
+            
     
     def train_step(
         self,
@@ -43,29 +43,19 @@ class Trainer():
         train_loss: list[tensor]
         train_acc: list[tensor]
         """
-        self.encoding_model.train()
-        self.cls_model.train()
+        self.model.train()
         train_loss = 0
         train_acc = 0
-        for X, y in train_dataloader:  
-            X = regional_info_extraction(X, self.laterization_dict)
+        for X, y in train_dataloader:
             X = X.to(self.device)
             y = y.to(self.device)
-            X = self.encoding_model(X)
-            print(X.requires_grad)
-            if self.ica_model is not None:
-                with torch.no_grad():
-                    X = self.ica_model.fit_transform(X.to('cpu').T).T
-                    X = torch.tensor(X).to(self.device)
-                    print(X.requires_grad)
-            print(X.requires_grad)
-            yhat = self.cls_model(X)
+            yhat = self.model(X)
             loss = self.loss_fn(yhat, y)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
             train_loss += float(loss)
-            acc = ((yhat).argmax(dim = 1) == y).sum().item()/len(y)
+            acc = (F.softmax(yhat, dim = 1).argmax(dim = 1) == y).sum().item()/len(y)
             train_acc += acc
         train_loss /= len(train_dataloader)
         train_acc /= len(train_dataloader)
@@ -86,23 +76,19 @@ class Trainer():
         test_loss: list[tensor]
         test_acc: list[tensor]
         """
-        self.encoding_model.eval()
-        self.cls_model.eval()
+        self.model.eval()
         test_loss = 0
         test_acc = 0
         with torch.inference_mode():
             for X, y in test_dataloader:  
-                X = regional_info_extraction(X, self.laterization_dict)
                 X = X.to(self.device)
                 y = y.to(self.device)
-                X = self.encoding_model(X)
-                if self.ica_model is not None:
-                    X = self.ica_model.fit_transform(X.to('cpu').T).T
-                    X = X.to(self.device)
-                yhat = self.cls_model(X)
+                yhat = self.model(X)
+                # feature extraction using ica
+
                 loss = self.loss_fn(yhat, y)
                 test_loss += float(loss)
-                acc = ((yhat).argmax(dim = 1) == y).sum().item()/len(y)
+                acc = (F.softmax(yhat, dim = 1).argmax(dim = 1) == y).sum().item()/len(y)
                 test_acc += acc
             test_loss /= len(test_dataloader)
             test_acc /= len(test_dataloader)
@@ -111,7 +97,7 @@ class Trainer():
 
     def reload_states_dict(
         self,
-        checkpoint_path
+        checkpoint_path : str
         ):
         """
         This function load the state dict of model and optimizer from the save checkpoint
@@ -127,14 +113,15 @@ class Trainer():
             raise ValueError("checkpoint path is not provided") 
         try:
             checkpoint_dict = torch.load(checkpoint_path)
+
         except Exception as e:
             raise ValueError(f'Error loading in checkpoint from {checkpoint_path}')
 
-        self.encoding_model.load_state_dict(checkpoint_dict['encoding_model'])
-        self.cls_model.load_state_dict(checkpoint_dict['cls_model'])
+        self.model.load_state_dict(checkpoint_dict[self.model_type])
         self.optimizer.load_state_dict(checkpoint_dict['optimizer'])
+        self.scheduler.load_state_dict(checkpoint_dict['scheduler'])
 
-        return checkpoint_dict['epoch'], checkpoint_dict['loss']
+        return checkpoint_dict['hist_dict']
 
 
 
@@ -143,10 +130,10 @@ class Trainer():
         epochs : int,
         train_dataloader : torch.utils.data.DataLoader,
         test_dataloader : torch.utils.data.DataLoader,
-        return_grad_flow = False,
         checkpoint_freq = 5,
         checkpoint_to_save_path = None,
-        checkpoint_to_load_path = None
+        is_checkpoint_to_load = False,
+        checkpoint_to_load_path = None 
         ):
 
         """
@@ -156,57 +143,42 @@ class Trainer():
             train_dataloader: dataloder for training data,
             test_dataloader: dataloader for testing data,
         return:
-            res_dict: type Dict, keys train_loss, train_acc, test_loss, test_acc
+            hist_dict: type Dict, keys train_loss, train_acc, test_loss, test_acc
         """
 
         start_epoch = 0
         previous_loss = None
-        self.encoding_model.to(self.device)
-        self.cls_model.to(self.device)
-
-        if checkpoint_to_load_path is not None :
-            start_epoch, _ = self.reload_states_dict(
-                checkpoint_path = checkpoint_to_load_path
-                )
-        
-        res_dict = {"train_loss": [],
+        self.model.to(self.device)
+        hist_dict = {
+            "epochs":0,
+            "train_loss": [],
             "train_acc": [],
             "test_loss": [],
             "test_acc": []
             }
-        grad_flow_dict  = dict()
+        if is_checkpoint_to_load:
+            if checkpoint_to_load_path is not None :
+                hist_dict = self.reload_states_dict(
+                    checkpoint_path = checkpoint_to_load_path
+                    )
+                start_epoch = hist_dict['epochs']
+            else:
+                raise ValueError(f"checkpoint can't be load {checkpoint_to_load_path}")
+        
 
+        
         for epoch in range(start_epoch, epochs):
             train_loss, train_acc = self.train_step(
                 train_dataloader = train_dataloader,
                 )
             
-            #checkpoint saving logic
-            if checkpoint_to_save_path is not None:
-                if (epoch+1) % checkpoint_freq == 0:
-                    if previous_loss is None or train_loss < previous_loss:
-                        checkpoint(
-                            {
-                                'encoding_model': self.encoding_model,
-                                'cls_model': self.cls_model
-                            },
-                            self.optimizer,
-                            epoch,
-                            train_loss,
-                            checkpoint_to_save_path
-                            )
-                        previous_loss = train_loss
+
             
             # validation part
             test_loss, test_acc = self.test_step(
                 test_dataloader = test_dataloader,
                 )
             
-            # grad flow part
-            if return_grad_flow :
-                grad_flow_dict[f'epoch_{epoch+1}'] = grad_flow(
-                    list(self.encoding_model.named_parameters())+list(self.cls_model.named_parameters())
-                    )
             
             print(
             f"Epoch: {epoch+1} | "
@@ -215,14 +187,34 @@ class Trainer():
             f"test_loss: {test_loss:.4f} | "
             f"test_acc: {test_acc:.4f}"
             )
-            res_dict['train_loss'].append(train_loss)
-            res_dict['train_acc'].append(train_acc)
-            res_dict['test_loss'].append(test_loss)
-            res_dict['test_acc'].append(test_acc)
-        if return_grad_flow:
-            return res_dict, grad_flow_dict
-        else:
-            return res_dict
+            hist_dict['epochs']= epoch+1
+            hist_dict['train_loss'].append(train_loss)
+            hist_dict['train_acc'].append(train_acc)
+            hist_dict['test_loss'].append(test_loss)
+            hist_dict['test_acc'].append(test_acc)
+
+            # self.scheduler.step(train_loss)#checkpoint saving logic
+            if checkpoint_to_save_path is not None:
+                if (epoch+1) % checkpoint_freq == 0:
+                    # logger
+                    logging.info(f"Epoch: {epoch+1}/{epochs} " 
+                                 f"Train Loss: {train_loss}, Train Accuracy: {train_acc} "
+                                 f"Test Acurracy {test_acc}" 
+                                 )
+                    if previous_loss is None or train_loss < previous_loss:
+                        kwarg = {
+                            'model_type': self.model_type,
+                            'model': self.model,
+                            'optimizer' : self.optimizer,
+                            'scheduler' : self.scheduler,
+                            'hist_dict' : hist_dict,
+                            'path': checkpoint_to_save_path
+                        }
+
+                        model_checkpoint(**kwarg)
+                        previous_loss = train_loss
+
+        return hist_dict
 
 
 
