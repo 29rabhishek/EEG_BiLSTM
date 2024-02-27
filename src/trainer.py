@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from utils import model_checkpoint, regional_info_extraction, latest_weight_file_path
 import logging
-
+import wandb
 
 
 class Trainer():
@@ -130,10 +130,11 @@ class Trainer():
         epochs : int,
         train_dataloader : torch.utils.data.DataLoader,
         test_dataloader : torch.utils.data.DataLoader,
+        wandb_run : wandb,
         checkpoint_freq = 5,
         checkpoint_to_save_path = None,
         is_checkpoint_to_load = False,
-        checkpoint_to_load_path = None 
+        checkpoint_to_load_path = None
         ):
 
         """
@@ -146,11 +147,12 @@ class Trainer():
             hist_dict: type Dict, keys train_loss, train_acc, test_loss, test_acc
         """
 
+
         start_epoch = 0
         previous_loss = None
         self.model.to(self.device)
         hist_dict = {
-            "epochs":0,
+            "epochs":[],
             "train_loss": [],
             "train_acc": [],
             "test_loss": [],
@@ -161,23 +163,32 @@ class Trainer():
                 hist_dict = self.reload_states_dict(
                     checkpoint_path = checkpoint_to_load_path
                     )
-                start_epoch = hist_dict['epochs']
+                start_epoch = hist_dict['epochs'][-1]
             else:
                 raise ValueError(f"checkpoint can't be load {checkpoint_to_load_path}")
         
-
-        
+        if wandb_run is not None:
+            wandb_run.watch(self.model)
         for epoch in range(start_epoch, epochs):
+            # Training Part
             train_loss, train_acc = self.train_step(
                 train_dataloader = train_dataloader,
                 )
             
 
-            
+
             # validation part
             test_loss, test_acc = self.test_step(
                 test_dataloader = test_dataloader,
                 )
+            if wandb_run is not None:
+                wandb.log({
+                    "train loss": train_loss,
+                    "train_acc": train_acc,
+                    "test_loss": test_loss,
+                    "test_acc": test_acc
+                })
+
             
             
             print(
@@ -187,13 +198,14 @@ class Trainer():
             f"test_loss: {test_loss:.4f} | "
             f"test_acc: {test_acc:.4f}"
             )
-            hist_dict['epochs']= epoch+1
+            hist_dict['epochs'].append(epoch+1)
             hist_dict['train_loss'].append(train_loss)
             hist_dict['train_acc'].append(train_acc)
             hist_dict['test_loss'].append(test_loss)
             hist_dict['test_acc'].append(test_acc)
 
-            # self.scheduler.step(train_loss)#checkpoint saving logic
+            self.scheduler.step()
+            #checkpoint saving logic
             if checkpoint_to_save_path is not None:
                 if (epoch+1) % checkpoint_freq == 0:
                     # logger
@@ -213,8 +225,9 @@ class Trainer():
 
                         model_checkpoint(**kwarg)
                         previous_loss = train_loss
-
-        return hist_dict
+        # model_artificate = wandb.Artifact(self.model, description="model")
+        # wandb_run.log_artifact(model_artificate)
+        return hist_dict, self.model
 
 
 
