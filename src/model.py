@@ -36,7 +36,53 @@ class Feature_Encoding(nn.Module):
         x = self.fcn_layer2(x)
         return x
     
+class Feature_Extraction(nn.Module):
+    """
+    Raw EEG Data with LSTM based Feature Extraction
+    this model taken from 
+    EEG Based Feature Extraction for Visual classification for Deep Learning paper
+    """
+    def __init__(self):
+        super().__init__()
+        self.bilstm_50_unit = nn.LSTM(
+            input_size=128,
+            hidden_size=50,
+            batch_first=True,
+            bidirectional= True
+            )
+        self.lstm_128_unit = nn.LSTM(
+            input_size=100,
+            hidden_size=128,
+            num_layers=1,
+            batch_first=True,
+            )
+        self.lstm_50_unit = nn.LSTM(
+            input_size=128,
+            hidden_size=50,
+            num_layers=1,
+            batch_first=True
+        )
+        self.fcn = nn.Linear(
+            in_features=50,
+            out_features=128
+            )
+        self.output_layer = nn.Linear(
+            in_features=128,
+            out_features=40
+        )
 
+
+    def forward(self, x):
+        self.bilstm_50_unit.flatten_parameters()
+        self.lstm_128_unit.flatten_parameters()
+        self.lstm_50_unit.flatten_parameters()
+        x, _ = self.bilstm_50_unit(x)
+        x, _ = self.lstm_128_unit(x)
+        x, _ = self.lstm_50_unit(x)
+        x = self.fcn(x[:, -1, :])
+        x = self.output_layer(x)
+        return x
+    
 class Classification_Model_Softmax(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
@@ -45,7 +91,6 @@ class Classification_Model_Softmax(nn.Module):
         x = self.fcn(x)
         return F.softmax(x, dim = 1)
     
-
 class Multiclass_SVM(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
@@ -56,7 +101,10 @@ class Multiclass_SVM(nn.Module):
 
 
 def build_model(model, config, is_xavier_init = False):
-    model = model(**config)
+    if config is not None:
+        model = model(**config)
+    else:
+        model = model()
     if is_xavier_init:
         for name, param in model.named_parameters():
             if "weight" in name:

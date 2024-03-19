@@ -95,11 +95,11 @@ def model_checkpoint(
         'scheduler': scheduler.state_dict(),
         'hist_dict': hist_dict
     }
-    new_path = f"{model_type}_checkpoint_{date.today().strftime('%d_%m')}_{hist_dict['epochs']}.pth"
+    new_path = f"{model_type}_checkpoint_{date.today().strftime('%d_%m')}_{hist_dict['epochs'][-1]}.pth"
     path = Path(path)/new_path
     torch.save(checkpoint_dict, path)
     print("")
-    print(f"{model_type} Model Checkpoint {hist_dict['epochs']}")
+    print(f"{model_type} Model Checkpoint {hist_dict['epochs'][-1]}")
     print("")
 
 

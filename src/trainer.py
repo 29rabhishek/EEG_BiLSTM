@@ -203,8 +203,8 @@ class Trainer():
             hist_dict['train_acc'].append(train_acc)
             hist_dict['test_loss'].append(test_loss)
             hist_dict['test_acc'].append(test_acc)
-
-            self.scheduler.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
             #checkpoint saving logic
             if checkpoint_to_save_path is not None:
                 if (epoch+1) % checkpoint_freq == 0:
@@ -225,8 +225,6 @@ class Trainer():
 
                         model_checkpoint(**kwarg)
                         previous_loss = train_loss
-        # model_artificate = wandb.Artifact(self.model, description="model")
-        # wandb_run.log_artifact(model_artificate)
         return hist_dict, self.model
 
 
