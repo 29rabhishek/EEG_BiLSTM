@@ -23,7 +23,19 @@ import wandb
 start_time = time.time()
 wandb.login()
 
+print(torch.cuda.device_count())
 
+## Parameters of Training
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = torch.device("cuda:4")
+torch.cuda.set_device(device)
+print(f"current gpu: {torch.cuda.current_device()}")
+
+#logging
+train_log_dir = f"{Path(os.getcwd())}/training logs"
+if not os.path.exists(train_log_dir):
+    os.makedirs(train_log_dir)
+    print(f"Directory created: {train_log_dir}")
 
 logging.basicConfig(
     filename=f"training logs/exp5_train_{date.today().strftime('%d_%m')}.log",
@@ -38,8 +50,8 @@ train_data_path = Path(os.getcwd()).parents[0]/"data/Data/Train/"
 val_data_path = Path(os.getcwd()).parents[0]/"data/Data/Val/"
 test_data_path = Path(os.getcwd()).parents[0]/"data/Data/Test/"
 
-data = np.load(Path(os.getcwd()).parents[0]/"data/data(5-95).npy").transpose(0,2,1)
-label = np.load(Path(os.getcwd()).parents[0]/"data/label.npy")
+# data = np.load(Path(os.getcwd()).parents[0]/"data/data(5-95).npy").transpose(0,2,1)
+# label = np.load(Path(os.getcwd()).parents[0]/"data/label.npy")
 
 """
 split used in this Experiment_5
@@ -69,8 +81,7 @@ train_test_data = {
 }
 
 
-## Parameters of Training
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
 EPOCHS = 2500
 BATCH_SIZE = 440
@@ -78,8 +89,11 @@ LEARNING_RATE = 1e-3
 CHECKPOINT_FREQ = 50
 MODEL_TYPE = "encoding"
 Experiment = "experiment_5"
-model_folder_path = f"{Path(os.getcwd()).parents[0]}/data/{Experiment}"
 
+model_folder_path = f"{Path(os.getcwd()).parents[0]}/data/{Experiment}"
+if not os.path.exists(model_folder_path):
+    os.makedirs(model_folder_path)
+    print(f"Directory created: {model_folder_path}")
 
 
 # loading model config

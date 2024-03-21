@@ -149,3 +149,4 @@ def grad_flow(named_parameters):
             avg_grads.append(p.grad.abs().detach().cpu().numpy().mean())
             max_grads.append(p.grad.abs().detach().cpu().numpy().max())
     return (layers, avg_grads, max_grads)
+
