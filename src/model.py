@@ -29,7 +29,7 @@ class Feature_Encoding(nn.Module):
         self.fcn_layer2 = nn.Linear(in_features = fcn_out_features, out_features = num_classes)
 
     def forward(self, x):
-        self.BiLstm_layer.flatten_parameters()
+        # self.BiLstm_layer.flatten_parameters()
         x , _ = self.BiLstm_layer(x)
         x = self.fcn_layer(x[:, -1, :])
         x = self.relu(x)
